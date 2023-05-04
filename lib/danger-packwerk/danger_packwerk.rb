@@ -25,6 +25,7 @@ module DangerPackwerk
                                       DEPENDENCY_VIOLATION_TYPE,
                                       PRIVACY_VIOLATION_TYPE
                                     ], T::Array[String])
+    NOOP_LAMBDA = lambda { |f| f }
 
     class CommentGroupingStrategy < ::T::Enum
       enums do
@@ -43,7 +44,8 @@ module DangerPackwerk
         failure_message: String,
         on_failure: OnFailure,
         violation_types: T::Array[String],
-        grouping_strategy: CommentGroupingStrategy
+        grouping_strategy: CommentGroupingStrategy,
+        filename_transformer: T.proc
       ).void
     end
     def check(
@@ -53,7 +55,8 @@ module DangerPackwerk
       failure_message: DEFAULT_FAILURE_MESSAGE,
       on_failure: DEFAULT_ON_FAILURE,
       violation_types: DEFAULT_VIOLATION_TYPES,
-      grouping_strategy: CommentGroupingStrategy::PerConstantPerLocation
+      grouping_strategy: CommentGroupingStrategy::PerConstantPerLocation,
+      filename_transformer: NOOP_LAMBDA
     )
       offenses_formatter ||= Check::DefaultFormatter.new
       repo_link = github.pr_json[:base][:repo][:html_url]
@@ -70,6 +73,8 @@ module DangerPackwerk
       # https://github.com/danger/danger/blob/eca19719d3e585fe1cc46bc5377f9aa955ebf609/lib/danger/danger_core/plugins/dangerfile_git_plugin.rb#L80
       renamed_files_after = git.renamed_files.map { |f| f[:after] }
       targeted_files = (git.modified_files + git.added_files + renamed_files_after).select do |f|
+        f = filename_transformer.call(f)
+
         path = Pathname.new(f)
 
         # We probably want to check the `include` key of `packwerk.yml`. By default, this value is "**/*.{rb,rake,erb}",
