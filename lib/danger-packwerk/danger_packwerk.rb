@@ -75,7 +75,7 @@ module DangerPackwerk
       # https://github.com/danger/danger/blob/eca19719d3e585fe1cc46bc5377f9aa955ebf609/lib/danger/danger_core/plugins/dangerfile_git_plugin.rb#L80
       renamed_files_after = git.renamed_files.map { |f| f[:after] }
 
-      (git.modified_files + git.added_files + renamed_files_after.each do  |f|
+      (git.modified_files + git.added_files + renamed_files_after).each do |f|
         transformed_filename = filename_transformer.call(f)
         transformed_files << transformed_filename
         inverse_file_mapping[transformed_filename] = f
