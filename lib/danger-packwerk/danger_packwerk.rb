@@ -45,7 +45,7 @@ module DangerPackwerk
         on_failure: OnFailure,
         violation_types: T::Array[String],
         grouping_strategy: CommentGroupingStrategy,
-        filename_transformer: T.proc
+        filename_transformer: T.proc.params(f: String).returns(String)
       ).void
     end
     def check(
