@@ -70,9 +70,18 @@ module DangerPackwerk
       # trigger the warning message, which is good, since we only want to trigger on new code.
       github.dismiss_out_of_range_messages
 
+      transformed_files = []
+      inverse_file_mapping = {}
       # https://github.com/danger/danger/blob/eca19719d3e585fe1cc46bc5377f9aa955ebf609/lib/danger/danger_core/plugins/dangerfile_git_plugin.rb#L80
       renamed_files_after = git.renamed_files.map { |f| f[:after] }
-      targeted_files = (git.modified_files + git.added_files + renamed_files_after).select do |f|
+
+      (git.modified_files + git.added_files + renamed_files_after.each do  |f|
+        transformed_filename = filename_transformer.call(f)
+        transformed_files << transformed_filename
+        inverse_file_mapping[transformed_filename] = f
+      end
+
+      targeted_files = transformed_files.select do |f|
         f = filename_transformer.call(f)
 
         path = Pathname.new(f)
@@ -137,7 +146,7 @@ module DangerPackwerk
 
         message = offenses_formatter.format_offenses(unique_packwerk_reference_offenses, repo_link, org_name)
 
-        markdown(message, file: referencing_file, line: line_number)
+        markdown(message, file: inverse_file_mapping[referencing_file], line: line_number)
       end
 
       if current_comment_count > 0

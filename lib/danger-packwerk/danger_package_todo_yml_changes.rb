@@ -46,13 +46,21 @@ module DangerPackwerk
       org_name = github.pr_json[:base][:repo][:owner][:login]
 
       changed_package_todo_ymls = (git.modified_files + git.added_files + git.deleted_files).grep(PACKAGE_TODO_PATTERN)
-      changed_package_todo_ymls = changed_package_todo_ymls.map { |c| filename_transformer.call(c) }
+
+      transformed_package_todo_ymls = []
+      inverse_file_mapping = {}
+      changed_package_todo_ymls.each do  |f|
+        transformed_filename = filename_transformer.call(f)
+
+        transformed_package_todo_ymls << transformed_filename
+        inverse_file_mapping[transformed_filename] = f
+      end
 
       violation_diff = get_violation_diff(violation_types)
 
       before_comment.call(
         violation_diff,
-        changed_package_todo_ymls.to_a
+        transformed_package_todo_ymls.to_a
       )
 
       current_comment_count = 0
@@ -65,7 +73,7 @@ module DangerPackwerk
         markdown(
           offenses_formatter.format_offenses(violations, repo_link, org_name),
           line: location.line_number,
-          file: location.file
+          file: inverse_file_mapping[location.file]
         )
 
         current_comment_count += 1
