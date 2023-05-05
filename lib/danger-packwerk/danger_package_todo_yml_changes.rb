@@ -23,26 +23,30 @@ module DangerPackwerk
                                       DEPENDENCY_VIOLATION_TYPE,
                                       PRIVACY_VIOLATION_TYPE
                                     ], T::Array[String])
+    NOOP_LAMBDA = lambda { |f| f }
 
     sig do
       params(
         offenses_formatter: T.nilable(Update::OffensesFormatter),
         before_comment: BeforeComment,
         max_comments: Integer,
-        violation_types: T::Array[String]
+        violation_types: T::Array[String],
+        filename_transformer: T.proc.params(f: String).returns(String)
       ).void
     end
     def check(
       offenses_formatter: nil,
       before_comment: DEFAULT_BEFORE_COMMENT,
       max_comments: DEFAULT_MAX_COMMENTS,
-      violation_types: DEFAULT_VIOLATION_TYPES
+      violation_types: DEFAULT_VIOLATION_TYPES,
+      filename_transformer: NOOP_LAMBDA
     )
       offenses_formatter ||= Update::DefaultFormatter.new
       repo_link = github.pr_json[:base][:repo][:html_url]
       org_name = github.pr_json[:base][:repo][:owner][:login]
 
       changed_package_todo_ymls = (git.modified_files + git.added_files + git.deleted_files).grep(PACKAGE_TODO_PATTERN)
+      changed_package_todo_ymls = changed_package_todo_ymls.map { |c| filename_transformer.call(c) }
 
       violation_diff = get_violation_diff(violation_types)
 
